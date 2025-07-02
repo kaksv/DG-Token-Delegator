@@ -1,0 +1,10 @@
+# Logs
+
+
+node_modules
+dist
+
+
+# Editor directories and files
+.bolt
+.env
