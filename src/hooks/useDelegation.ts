@@ -203,6 +203,56 @@ export const useDelegation = () => {
     }
   };
 
+  const undelegate = async () => {
+    if (!wallet.client || !wallet.address) {
+      throw new Error('Wallet not connected');
+    }
+
+    setIsLoading(true);
+
+    const record = {
+      fromAddress: wallet.address,
+      toAddress: '0x0000000000000000000000000000000000000000',
+      delegationType: 'custom' as const,
+      stewardName: undefined,
+      amount: undefined,
+      status: 'pending' as const
+    };
+
+    const recordId = addDelegationRecord(record);
+
+    try {
+      // Delegate to zero address to remove delegation
+      const hash = await wallet.client.writeContract({
+        address: UP_TOKEN_ADDRESS,
+        abi: ERC20_VOTES_ABI,
+        functionName: 'delegate',
+        args: ['0x0000000000000000000000000000000000000000'],
+        account: wallet.address,
+      });
+
+      // Wait for transaction confirmation
+      const receipt = await wallet.client.waitForTransactionReceipt({ hash });
+
+      if (receipt.status === 'success') {
+        updateDelegationStatus(recordId, 'completed', hash);
+        await fetchCurrentDelegate();
+        await fetchUserData();
+      } else {
+        updateDelegationStatus(recordId, 'failed', hash);
+        throw new Error('Transaction failed');
+      }
+
+      return hash;
+    } catch (error) {
+      console.error('Undelegation failed:', error);
+      updateDelegationStatus(recordId, 'failed');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     delegationHistory,
     currentDelegate,
@@ -210,6 +260,7 @@ export const useDelegation = () => {
     votingPower,
     isLoading,
     delegate,
+    undelegate,
     fetchUserData,
     fetchCurrentDelegate
   };

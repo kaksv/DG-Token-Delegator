@@ -7,11 +7,11 @@ import { DelegationHistory } from './components/DelegationHistory';
 import { useWallet } from './hooks/useWallet';
 import { useDelegation } from './hooks/useDelegation';
 import { stewards } from './data/stewards';
-import { Vote, Users, History, AlertTriangle } from 'lucide-react';
+import { Vote, Users, History,UserX, AlertTriangle } from 'lucide-react';
 
 function App() {
   const { wallet } = useWallet();
-  const { currentDelegate, delegate, isLoading } = useDelegation();
+  const { currentDelegate, delegate,undelegate, isLoading } = useDelegation();
   const [activeTab, setActiveTab] = useState<'delegate' | 'history'>('delegate');
 
   const handleDelegate = async (address: string, stewardName?: string, amount?: string) => {
@@ -34,6 +34,15 @@ function App() {
     } catch (error) {
       console.error('Self delegation failed:', error);
       alert('Self delegation failed. Please try again.');
+    }
+  };
+
+   const handleUndelegate = async () => {
+    try {
+      await undelegate();
+    } catch (error) {
+      console.error('Undelegation failed:', error);
+      alert('Undelegation failed. Please try again.');
     }
   };
 
@@ -151,6 +160,13 @@ function App() {
                     walletAddress={wallet.address}
                   />
 
+                   {/* Undelegate Card */}
+                  {currentDelegate && (
+                    <UndelegateCard 
+                      onUndelegate={handleUndelegate}
+                      isLoading={isLoading}
+                    />
+                  )}
                   <CustomDelegation onDelegate={handleDelegate} isLoading={isLoading} />
                 </div>
               </div>
@@ -187,7 +203,7 @@ function App() {
       <footer className="mt-16 border-t border-gray-200/50 bg-white/30 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p className="mb-2">Built for the Unlock Protocol community</p>
+            <p className="mb-2">Built for the Unlock Protocol community | By @kakoozavian from Decentracode</p>
             <p className="text-sm">
               Delegate responsibly • Always verify addresses • Participate in governance
             </p>
@@ -226,6 +242,8 @@ const SelfDelegationCard: React.FC<{
     
     return null;
   };
+
+
 
   const handleDelegate = () => {
     if (showAmountInput && amount.trim()) {
@@ -345,6 +363,72 @@ const SelfDelegationCard: React.FC<{
               setAmount('');
               setError('');
             }}
+            className="w-full py-2 px-4 text-gray-600 hover:text-gray-800 text-sm transition-colors"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Undelegate Component
+const UndelegateCard: React.FC<{
+  onUndelegate: () => void;
+  isLoading: boolean;
+}> = ({ onUndelegate, isLoading }) => {
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const handleUndelegate = () => {
+    if (showConfirmation) {
+      onUndelegate();
+      setShowConfirmation(false);
+    } else {
+      setShowConfirmation(true);
+    }
+  };
+
+  return (
+    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+      <div className="flex items-center space-x-3 mb-4">
+        <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+          <UserX className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <h3 className="font-bold text-gray-900">Remove Delegation</h3>
+          <p className="text-sm text-gray-600">Stop delegating your votes</p>
+        </div>
+      </div>
+      
+      <p className="text-gray-600 text-sm mb-4">
+        Remove your current delegation and stop your voting power from being used by others.
+      </p>
+
+      {showConfirmation && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm text-amber-800">
+            <strong>Confirm:</strong> This will remove your current delegation. You can delegate again at any time.
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <button
+          onClick={handleUndelegate}
+          disabled={isLoading}
+          className={`w-full py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
+            showConfirmation
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-red-100 hover:bg-red-200 text-red-700'
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          {isLoading ? 'Removing...' : showConfirmation ? 'Confirm Removal' : 'Remove Delegation'}
+        </button>
+
+        {showConfirmation && (
+          <button
+            onClick={() => setShowConfirmation(false)}
             className="w-full py-2 px-4 text-gray-600 hover:text-gray-800 text-sm transition-colors"
           >
             Cancel
